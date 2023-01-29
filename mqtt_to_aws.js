@@ -1,7 +1,7 @@
 const mqtt = require('mqtt')
 const AWS = require('aws-sdk')
 
-AWS.config.loadFromPath('./config.json')
+AWS.config.update({ region: 'us-east-1' })
 const config = { clean: true, secure: false }
 const client = mqtt.connect('mqtt://3.127.195.30:1883', config)
 
