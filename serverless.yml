@@ -1,0 +1,20 @@
+org: yieldx
+app: lambdas-general
+service: lambdas-general
+
+frameworkVersion: '2 || 3'
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  profile: yieldx
+
+functions:
+  redmite_post:
+    handler: redmite.default
+    events:
+      - http:
+          method: POST
+          path: redmite
+          integration: lambda
+          cors: true

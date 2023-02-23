@@ -4,3 +4,4 @@ node_modules
 .idea/usage.statistics.xml
 .idea/shelf
 .idea/*.iws
+.serverless
