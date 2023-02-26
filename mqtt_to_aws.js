@@ -1,5 +1,5 @@
-const mqtt = require('mqtt')
-const AWS = require('aws-sdk')
+import mqtt from 'mqtt'
+import AWS from 'aws-sdk'
 
 AWS.config.update({ region: 'us-east-1' })
 const config = { clean: true, secure: false }
