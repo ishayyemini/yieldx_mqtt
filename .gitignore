@@ -5,3 +5,4 @@ node_modules
 .idea/shelf
 .idea/*.iws
 .serverless
+daemon
