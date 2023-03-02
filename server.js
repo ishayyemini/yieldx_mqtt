@@ -13,10 +13,16 @@ app.get('/', (req, res) => {
 app.get('/health-check', (req, res) => {
   res.json({ message: 'Server up and running' })
 })
+
 app.get('/get-report-data', (req, res) => {
-  const { UID, username } = req.query
+  const { UID, username, noCompression } = req.query
   if (!UID) res.json({ err: 'Missing UID' })
-  getReportData({ UID, username }).then((result) => res.json(result))
+  else
+    getReportData(
+      { UID, username, noCompression },
+      (chunk) => res.write(chunk),
+      () => res.end()
+    )
 })
 
 app.listen(PORT, () => {

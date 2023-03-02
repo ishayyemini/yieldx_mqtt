@@ -1,22 +1,41 @@
 const sql = require('mssql')
 const { compress } = require('compress-json')
 
-const get_report_data = async ({ username, UID }) => {
+const get_report_data = ({ username, UID, noCompression }, writeChunk, end) => {
   if (username === 'all') username = ''
   console.log(`Fetching data of test number ${UID}`)
 
-  console.time('Fetching from SQL')
+  console.time('Total time')
   const config = {
     user: 'sa',
     password: 'Yieldxbiz2021',
-    server: 'localhost',
+    server: '3.127.195.30',
     database: 'SensorsN',
     options: { encrypt: false },
   }
-  await sql.connect(config).catch((e) => console.log(e))
+  sql.connect(config).then(async () => {
+    const request = new sql.Request()
+    const [{ row_count }] = await request
+      .query(
+        `
+SELECT Count(*) as row_count 
+FROM SensorsData
+WHERE dateCreated = (
+  SELECT dateCreated
+  FROM Locations
+  WHERE UID = ${UID} 
+  ${username ? `and Customer = '${username}'` : ''}
+) 
+      `
+      )
+      .then((res) => res.recordset)
+    let fetchedAlready = 0
 
-  const res = await new sql.Request()
-    .query(
+    console.log(`Found ${row_count} rows`)
+    writeChunk(row_count)
+    request.stream = true
+
+    request.query(
       `
 SELECT * 
 FROM SensorsData
@@ -28,20 +47,50 @@ WHERE dateCreated = (
 )
       `
     )
-    .then((res) => res.recordset)
-  console.timeEnd('Fetching from SQL')
-  console.log(`Fetched ${res?.length} records`)
 
-  console.time('Compressing')
-  const beforeSize = Buffer.byteLength(JSON.stringify(res))
-  console.log('Size before compression:', beforeSize)
+    process.stdout.write(
+      `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
+        (fetchedAlready / row_count) * 100
+      )}%)`
+    )
 
-  const compressed = compress(res)
-  const afterSize = Buffer.byteLength(JSON.stringify(compressed))
-  console.log('Size after compression:', afterSize)
-  console.timeEnd('Compressing')
+    let rowsToProcess = []
+    request.on('row', (row) => {
+      rowsToProcess.push(row)
+      if (rowsToProcess.length >= 1000) {
+        request.pause()
+        processRows()
+      }
+    })
 
-  return compressed
+    const processRows = () => {
+      writeChunk(noCompression ? rowsToProcess : compress(rowsToProcess))
+      fetchedAlready += rowsToProcess.length
+
+      process.stdout.clearLine(0)
+      process.stdout.cursorTo(0)
+      process.stdout.write(
+        `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
+          (fetchedAlready / row_count) * 100
+        )}%)`
+      )
+
+      rowsToProcess = []
+      request.resume()
+    }
+
+    request.on('done', () => {
+      processRows()
+      sql.close()
+      console.log()
+      console.timeEnd('Total time')
+      end()
+    })
+  })
+
+  sql.on('error', (err) => {
+    console.log(err)
+  })
 }
 
 module.exports.default = get_report_data
