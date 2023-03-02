@@ -15,6 +15,7 @@ app.get('/health-check', (req, res) => {
 })
 app.get('/get-report-data', (req, res) => {
   const { UID, username } = req.query
+  if (!UID) res.json({ err: 'Missing UID' })
   getReportData({ UID, username }).then((result) => res.json(result))
 })
 
