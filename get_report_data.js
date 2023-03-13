@@ -1,7 +1,6 @@
 const sql = require('mssql')
-const { compress } = require('compress-json')
 
-const get_report_data = ({ username, UID, noCompression }, writeChunk, end) => {
+const get_report_data = ({ username, UID }, write, end) => {
   if (username === 'all') username = ''
   console.log(`Fetching data of test number ${UID}`)
 
@@ -9,7 +8,7 @@ const get_report_data = ({ username, UID, noCompression }, writeChunk, end) => {
   const config = {
     user: 'sa',
     password: 'Yieldxbiz2021',
-    server: '3.127.195.30',
+    server: 'localhost',
     database: 'SensorsN',
     options: { encrypt: false },
   }
@@ -32,12 +31,11 @@ WHERE dateCreated = (
     let fetchedAlready = 0
 
     console.log(`Found ${row_count} rows`)
-    writeChunk(row_count)
+    write(row_count.toString())
     request.stream = true
 
-    request
-      .query(
-        `
+    request.query(
+      `
 SELECT * 
 FROM SensorsData
 WHERE dateCreated = (
@@ -47,8 +45,7 @@ WHERE dateCreated = (
   ${username ? `and Customer = '${username}'` : ''}
 )
       `
-      )
-      .pipe()
+    )
 
     process.stdout.write(
       `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
@@ -56,19 +53,7 @@ WHERE dateCreated = (
       )}%)`
     )
 
-    let rowsToProcess = []
-    request.on('row', (row) => {
-      rowsToProcess.push(row)
-      if (rowsToProcess.length >= 1000) {
-        request.pause()
-        processRows()
-      }
-    })
-
-    const processRows = () => {
-      writeChunk(noCompression ? rowsToProcess : compress(rowsToProcess))
-      fetchedAlready += rowsToProcess.length
-
+    const updateStatus = () => {
       process.stdout.clearLine(0)
       process.stdout.cursorTo(0)
       process.stdout.write(
@@ -76,13 +61,19 @@ WHERE dateCreated = (
           (fetchedAlready / row_count) * 100
         )}%)`
       )
-
-      rowsToProcess = []
-      request.resume()
     }
 
+    let firstRow = true
+    request.on('row', (row) => {
+      write((firstRow ? '[' : ',') + JSON.stringify(row))
+      if (firstRow) firstRow = false
+      fetchedAlready++
+      if (fetchedAlready % 100 === 0) updateStatus()
+    })
+
     request.on('done', () => {
-      processRows()
+      write(']')
+      updateStatus()
       sql.close()
       console.log()
       console.timeEnd('Total time')
