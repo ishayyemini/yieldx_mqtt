@@ -1,8 +1,11 @@
 const express = require('express')
+const cors = require('cors')
 
 const getReportData = require('./get_report_data').default
 
 const app = express()
+
+app.use(cors())
 
 const PORT = 5000
 
