@@ -20,12 +20,18 @@ app.get('/health-check', (req, res) => {
 app.get('/get-report-data', (req, res) => {
   const { UID, username } = req.query
   if (!UID) res.json({ err: 'Missing UID' })
-  else
+  else {
+    res.writeHead(200, {
+      Connection: 'keep-alive',
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+    })
     getReportData(
       { UID, username },
       (chunk) => res.write(chunk),
       () => res.end()
     )
+  }
 })
 
 app.listen(PORT, () => {
