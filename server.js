@@ -15,12 +15,12 @@ app.get('/health-check', (req, res) => {
 })
 
 app.get('/get-report-data', (req, res) => {
-  const { UID, username, noCompression } = req.query
+  const { UID, username } = req.query
   if (!UID) res.json({ err: 'Missing UID' })
   else
     getReportData(
-      { UID, username, noCompression },
-      (chunk) => res.write(JSON.stringify(chunk)),
+      { UID, username },
+      (chunk) => res.write(chunk),
       () => res.end()
     )
 })
