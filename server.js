@@ -20,7 +20,7 @@ app.get('/get-report-data', (req, res) => {
   else
     getReportData(
       { UID, username, noCompression },
-      (chunk) => res.write(chunk),
+      (chunk) => res.write(JSON.stringify(chunk)),
       () => res.end()
     )
 })

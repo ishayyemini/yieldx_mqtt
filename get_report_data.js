@@ -35,8 +35,9 @@ WHERE dateCreated = (
     writeChunk(row_count)
     request.stream = true
 
-    request.query(
-      `
+    request
+      .query(
+        `
 SELECT * 
 FROM SensorsData
 WHERE dateCreated = (
@@ -46,7 +47,8 @@ WHERE dateCreated = (
   ${username ? `and Customer = '${username}'` : ''}
 )
       `
-    )
+      )
+      .pipe()
 
     process.stdout.write(
       `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
