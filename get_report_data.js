@@ -1,8 +1,12 @@
 const sql = require('mssql')
+const EventLogger = require('node-windows').EventLogger
+
+const log = new EventLogger('get_report_data')
 
 const get_report_data = async ({ username, UID }, res) => {
   if (username === 'all') username = ''
   console.log(`Fetching data of test number ${UID}`)
+  log.info(`Fetching data of test number ${UID}`)
 
   console.time('Total time')
   const request = new sql.Request()
@@ -23,6 +27,7 @@ WHERE dateCreated = (
     )
     .then((res) => res.recordset)
   console.log(`Found ${row_count} rows`)
+  log.info(`Found ${row_count} rows`)
   res.write(row_count.toString())
   res.flush()
 
@@ -68,6 +73,7 @@ WHERE dateCreated = (
   })
 
   request.on('done', () => {
+    log.info(`Done, fetched ${fetchedAlready} rows out of ${row_count}`)
     clearInterval(printing)
     updateStatus()
     console.log()

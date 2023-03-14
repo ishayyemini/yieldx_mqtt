@@ -2,8 +2,11 @@ const express = require('express')
 const cors = require('cors')
 const compression = require('compression')
 const sql = require('mssql')
+const EventLogger = require('node-windows').EventLogger
 
 const getReportData = require('./get_report_data').default
+
+const log = new EventLogger('SQL_Server_JS')
 
 const app = express()
 
@@ -29,7 +32,10 @@ app.get('/get-report-data', (req, res) => {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     })
-    getReportData({ UID, username }, res).then()
+    getReportData({ UID, username }, res).catch((err) => {
+      console.log(err)
+      log.error(err)
+    })
   }
 })
 
@@ -43,9 +49,11 @@ const config = {
 sql.connect(config).then(() => {
   app.listen(PORT, () => {
     console.log('Server Running on PORT', PORT)
+    log.info('Server Running on PORT ' + PORT)
   })
 })
 
 sql.on('error', (err) => {
+  log.error(err)
   console.log(err)
 })
