@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const compression = require('compression')
+const sql = require('mssql')
 
 const getReportData = require('./get_report_data').default
 
@@ -28,10 +29,23 @@ app.get('/get-report-data', (req, res) => {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     })
-    getReportData({ UID, username }, res)
+    getReportData({ UID, username }, res).then()
   }
 })
 
-app.listen(PORT, () => {
-  console.log('Server Running on PORT', PORT)
+const config = {
+  user: 'sa',
+  password: 'Yieldxbiz2021',
+  server: 'localhost',
+  database: 'SensorsN',
+  options: { encrypt: false },
+}
+sql.connect(config).then(() => {
+  app.listen(PORT, () => {
+    console.log('Server Running on PORT', PORT)
+  })
+})
+
+sql.on('error', (err) => {
+  console.log(err)
 })
