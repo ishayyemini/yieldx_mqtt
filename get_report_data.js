@@ -1,8 +1,12 @@
 const sql = require('mssql')
+const EventLogger = require('node-windows').EventLogger
+
+const log = new EventLogger('get_report_data')
 
 const get_report_data = async ({ username, UID }, res) => {
   if (username === 'all') username = ''
   console.log(`Fetching data of test number ${UID}`)
+  log.info(`Fetching data of test number ${UID}`)
 
   console.time('Total time')
   const request = new sql.Request()
@@ -23,6 +27,7 @@ WHERE dateCreated = (
     )
     .then((res) => res.recordset)
   console.log(`Found ${row_count} rows`)
+  log.info(`Found ${row_count} rows`)
   res.write(row_count.toString())
   res.flush()
 
@@ -42,13 +47,19 @@ WHERE dateCreated = (
 
   // Log fetching status
   const updateStatus = () => {
-    process.stdout.clearLine(0)
-    process.stdout.cursorTo(0)
-    process.stdout.write(
-      `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
-        (fetchedAlready / row_count) * 100
-      )}%)`
-    )
+    if (
+      process?.stdout?.clearLine &&
+      process?.stdout?.cursorTo &&
+      process?.stdout?.write
+    ) {
+      process.stdout.clearLine(0)
+      process.stdout.cursorTo(0)
+      process.stdout.write(
+        `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
+          (fetchedAlready / row_count) * 100
+        )}%)`
+      )
+    }
   }
 
   let fetchedAlready = 0
@@ -68,6 +79,7 @@ WHERE dateCreated = (
   })
 
   request.on('done', () => {
+    log.info(`Done, fetched ${fetchedAlready} rows out of ${row_count}`)
     clearInterval(printing)
     updateStatus()
     console.log()

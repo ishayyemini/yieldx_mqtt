@@ -1,8 +1,8 @@
 const Service = require('node-windows').Service
 
 const svc = new Service({
-  name: 'Redmite_viv',
-  script: require('path').join(__dirname, 'redmite.js'),
+  name: 'SQL_Server_JS',
+  script: require('path').join(__dirname, 'server.js'),
 })
 
 svc.on('install', () => {
