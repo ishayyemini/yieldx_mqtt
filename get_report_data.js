@@ -1,6 +1,6 @@
 const sql = require('mssql')
 
-const get_report_data = ({ username, UID }, write, end) => {
+const get_report_data = ({ username, UID }, res) => {
   if (username === 'all') username = ''
   console.log(`Fetching data of test number ${UID}`)
 
@@ -14,6 +14,8 @@ const get_report_data = ({ username, UID }, write, end) => {
   }
   sql.connect(config).then(async () => {
     const request = new sql.Request()
+
+    // Send row count to end user
     const [{ row_count }] = await request
       .query(
         `
@@ -28,12 +30,11 @@ WHERE dateCreated = (
       `
       )
       .then((res) => res.recordset)
-    let fetchedAlready = 0
-
     console.log(`Found ${row_count} rows`)
-    write(row_count.toString())
-    request.stream = true
+    res.write(row_count.toString())
+    res.flush()
 
+    request.stream = true
     request.query(
       `
 SELECT * 
@@ -47,12 +48,7 @@ WHERE dateCreated = (
       `
     )
 
-    process.stdout.write(
-      `Fetched ${fetchedAlready} out of ${row_count} (${Math.round(
-        (fetchedAlready / row_count) * 100
-      )}%)`
-    )
-
+    // Log fetching status
     const updateStatus = () => {
       process.stdout.clearLine(0)
       process.stdout.cursorTo(0)
@@ -63,25 +59,37 @@ WHERE dateCreated = (
       )
     }
 
-    let firstRow = true
+    let fetchedAlready = 0
+    const BATCH_SIZE = 100
+
+    const printing = setInterval(updateStatus, 1000)
+
+    request.on('recordset', () => {
+      res.write('[')
+    })
+
     request.on('row', (row) => {
-      write((firstRow ? '[' : ',') + JSON.stringify(row))
-      if (firstRow) firstRow = false
+      if (fetchedAlready > 0) res.write(',')
+      if (fetchedAlready % BATCH_SIZE === 0) res.flush()
+      res.write(JSON.stringify(row))
       fetchedAlready++
-      if (fetchedAlready % 100 === 0) updateStatus()
     })
 
     request.on('done', () => {
-      write(']')
+      clearInterval(printing)
       updateStatus()
-      sql.close()
+      res.write(']')
       console.log()
       console.timeEnd('Total time')
-      end()
+      console.log()
+      sql.close()
+      res.end()
     })
   })
 
   sql.on('error', (err) => {
+    console.timeEnd('Total time')
+    res.end()
     console.log(err)
   })
 }

@@ -1,11 +1,13 @@
 const express = require('express')
 const cors = require('cors')
+const compression = require('compression')
 
 const getReportData = require('./get_report_data').default
 
 const app = express()
 
 app.use(cors())
+app.use(compression())
 
 const PORT = 5000
 
@@ -23,14 +25,10 @@ app.get('/get-report-data', (req, res) => {
   else {
     res.writeHead(200, {
       Connection: 'keep-alive',
-      'Content-Type': 'text/event-stream',
+      'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     })
-    getReportData(
-      { UID, username },
-      (chunk) => res.write(chunk),
-      () => res.end()
-    )
+    getReportData({ UID, username }, res)
   }
 })
 
