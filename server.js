@@ -1,26 +1,21 @@
 const express = require('express')
+const sql = require('mssql')
 const cors = require('cors')
 const compression = require('compression')
-const sql = require('mssql')
-const EventLogger = require('node-windows').EventLogger
 
-const getReportData = require('./get_report_data').default
-
-const log = new EventLogger('SQL_Server_JS')
+const getReportData = require('./get_report_data')
 
 const app = express()
 
 app.use(cors())
 app.use(compression())
 
-const PORT = 5000
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello World' })
+app.get('/test', (req, res) => {
+  res.send('test ok!')
 })
 
-app.get('/health-check', (req, res) => {
-  res.json({ message: 'Server up and running' })
+app.get('/', (req, res) => {
+  res.send('welcome to the backend (:')
 })
 
 app.get('/get-report-data', (req, res) => {
@@ -34,7 +29,6 @@ app.get('/get-report-data', (req, res) => {
     })
     getReportData({ UID, username }, res).catch((err) => {
       console.log(err)
-      log.error(err)
     })
   }
 })
@@ -47,13 +41,11 @@ const config = {
   options: { encrypt: false },
 }
 sql.connect(config).then(() => {
-  app.listen(PORT, () => {
-    console.log('Server Running on PORT', PORT)
-    log.info('Server Running on PORT ' + PORT)
+  app.listen(process.env.PORT, () => {
+    console.log('Server Running on PORT', process.env.PORT)
   })
 })
 
 sql.on('error', (err) => {
-  log.error(err)
   console.log(err)
 })
