@@ -26,32 +26,44 @@ app.get('/', (req, res) => {
   res.send('welcome to the backend (:')
 })
 
+let currentText = []
+
 app.post('/email-logs', (req, res) => {
-  const content = req.body
-  const { email, uid } = req.query
+  const { email, uid, part } = req.query
   const to = emailRegex.test(email) ? email : 'amit@yieldx.biz'
-  if (!content) res.send('error: no content sent')
-  else
-    transporter
-      .sendMail({
-        from: 'yieldx.dev@gmail.com',
-        to,
-        subject: 'RedMite Log ' + (uid ? uid : ''),
-        attachments: [
-          {
-            filename: `redmite_log_${uid ? uid + '_' : ''}${Date.now()}.txt`,
-            content,
-          },
-        ],
-      })
-      .then((result) => {
-        res.send(`ok: sent log to ${to}`)
-        console.log('Mail sent:', result.response)
-      })
-      .catch((err) => {
-        res.send('error: ' + err.message)
-        console.log(err.message)
-      })
+  console.log(part)
+  if (!req.body) res.send('error: no content sent')
+  else if (part === undefined || isNaN(part))
+    res.send('error: no part specified')
+  else {
+    if (Number(part) < -1) res.send('error: bad part')
+    if (Number(part) > -1) {
+      currentText[part] = req.body
+      res.send(`ok: attached part ${part}`)
+    }
+    if (Number(part) === -1)
+      transporter
+        .sendMail({
+          from: 'yieldx.dev@gmail.com',
+          to,
+          subject: 'RedMite Log ' + (uid ? uid : ''),
+          attachments: [
+            {
+              filename: `redmite_log_${uid ? uid + '_' : ''}${Date.now()}.txt`,
+              content: [...currentText, req.body].join(''),
+            },
+          ],
+        })
+        .then((result) => {
+          res.send(`ok: sent log to ${to}`)
+          currentText = []
+          console.log('Mail sent:', result.response)
+        })
+        .catch((err) => {
+          res.send('error: ' + err.message)
+          console.log(err.message)
+        })
+  }
 })
 
 app.listen(process.env.PORT, () => {
