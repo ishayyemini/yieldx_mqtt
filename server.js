@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
 let currentText = []
 
 app.post('/email-logs', (req, res) => {
-  const { email, uid, part } = req.query
+  const { email, uid, text, part } = req.query
   const to = emailRegex.test(email) ? email : 'amit@yieldx.biz'
   console.log(part)
   if (!req.body) res.send('error: no content sent')
@@ -46,7 +46,8 @@ app.post('/email-logs', (req, res) => {
         .sendMail({
           from: 'yieldx.dev@gmail.com',
           to,
-          subject: 'RedMite Log ' + (uid ? uid : ''),
+          subject:
+            'RedMite Log: ' + (text ? text : '') + ' ' + (uid ? uid : ''),
           attachments: [
             {
               filename: `redmite_log_${uid ? uid + '_' : ''}${Date.now()}.txt`,
